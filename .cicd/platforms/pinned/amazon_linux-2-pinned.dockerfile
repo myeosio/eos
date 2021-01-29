@@ -7,6 +7,14 @@ RUN yum update -y && \
     libusbx-devel python3 python3-devel python-devel libedit-devel doxygen \
     graphviz patch gcc gcc-c++ vim-common jq && \
     yum clean all && rm -rf /var/cache/yum
+#build postgres
+RUN curl -LO https://ftp.postgresql.org/pub/source/v13.2/postgresql-13.2.tar.gz && \
+    tar xf postgresql-13.2.tar.gz && \
+    cd postgresql-13.2 && \
+    CFLAGS="-fPIC -O2" CPPFLAGS="-D_FORTIFY_SOURCE=2" ./configure --prefix=/usr/local --without-readline && \
+    make -j$(nproc) install && \
+    cd / && rm -rf postgresql* && \
+    rm -rf /usr/local/{sbin,bin}
 # build cmake
 RUN curl -LO https://github.com/Kitware/CMake/releases/download/v3.16.2/cmake-3.16.2.tar.gz && \
     tar -xzf cmake-3.16.2.tar.gz && \
@@ -44,15 +52,8 @@ RUN curl -LO https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.
     rm -rf boost_1_72_0.tar.bz2 /boost_1_72_0
 #install libpq postgresql-server
 RUN amazon-linux-extras enable postgresql11 && \
-    yum install -y libpq-devel postgresql-server && \
+    yum install -y postgresql-server && \
     yum clean all && rm -rf /var/cache/yum
-#build libpqxx
-RUN curl -L https://github.com/jtv/libpqxx/archive/7.2.1.tar.gz | tar zxvf - && \
-    cd  libpqxx-7.2.1  && \
-    cmake -DCMAKE_TOOLCHAIN_FILE=/tmp/clang.cmake -DPostgreSQL_TYPE_INCLUDE_DIR=/usr/include/libpq -DSKIP_BUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release -S . -B build && \
-    cmake --build build && cmake --install build && \
-    cd .. && rm -rf libpqxx-7.2.1
-ENV PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig
 # install nvm
 RUN touch ~/.bashrc
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash

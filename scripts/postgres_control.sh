@@ -32,7 +32,7 @@ if [ "$CI" = "true" ]; then
          PG_CTL=$PostgreSQL_ROOT/bin/pg_ctl
       elif [ ! -z `which  pg_ctlcluster 2>/dev/null` ]; then
          # ubuntu
-         PG_CTL="pg_ctlcluster 13 main"
+         PG_CTL="pg_ctlcluster $(pg_lsclusters -h | cut -f1 -d' ') main"
       fi
    fi
 

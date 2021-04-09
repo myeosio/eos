@@ -2890,12 +2890,14 @@ flat_set<account_name> controller::proposed_security_group_participants() const 
 }
 
 int64_t controller::add_security_group_participants(const flat_set<account_name>& participants) {
+   ilog("REM add_security_group_participants ");
    return participants.size() == 0 ? -1 : my->propose_security_group([&participants](auto& pending_participants) {
       pending_participants.insert(participants.begin(), participants.end());
    });
 }
 
 int64_t controller::remove_security_group_participants(const flat_set<account_name>& participants) {
+   ilog("REM remove_security_group_participants ");
    return participants.size() == 0 ? -1 : my->propose_security_group([&participants](auto& pending_participants) {
       flat_set<account_name>::sequence_type tmp;
       tmp.reserve(pending_participants.size());

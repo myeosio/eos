@@ -2402,7 +2402,10 @@ namespace eosio {
       for_each_block_connection( [this, &id, &bnum, &b, &buff_factory]( auto& cp ) {
          peer_dlog( cp, "socket_is_open ${s}, connecting ${c}, syncing ${ss}",
                     ("s", cp->socket_is_open())("c", cp->connecting.load())("ss", cp->syncing.load()) );
-         if( !cp->current() || !cp->is_participating() ) return true;
+         if( !cp->current() || !cp->is_participating() ) {
+            ilog("REM not sending");
+            return true;
+         }
          send_buffer_type sb = buff_factory.get_send_buffer( b, cp->protocol_version.load() );
          if( !sb ) {
             peer_wlog( cp, "Sending go away for incomplete block #${n} ${id}...",
@@ -3669,8 +3672,11 @@ namespace eosio {
       if(security_group.current_version() == update.version) {
          return;
       }
+      ilog("REM update_security_group check update cache mutex");
       std::lock_guard<std::shared_mutex> connection_guard(connections_mtx);
+      ilog("REM update_security_group check update cache");
       if(!security_group.update_cache(update.version, update.participants)) {
+         ilog("REM update_security_group check update cache not updated");
          return;
       }
 
@@ -3678,6 +3684,7 @@ namespace eosio {
       //
       for(auto& connection : connections) {
          const auto& participant = connection->participant_name();
+         ilog("REM update_security_group participant: ${part}, participating: ${p}",("part",participant->to_string())("p",connection->is_participating()));
          if(participant && security_group.is_in_security_group(participant.value())) {
             ilog("REM update_security_group participant in: ${part}, participating: ${p}",("part",participant->to_string())("p",connection->is_participating()));
             if(!connection->is_participating()) {

@@ -316,7 +316,22 @@ namespace eosio { namespace chain {
 
       result.activated_protocol_features = std::move( new_activated_protocol_features );
 
+      std::string participants = "";
+      for (const auto part : security_group.participants) {
+         participants += part.to_string() + ",";
+      }
+      const auto orig_ver = security_group.version;
+      const auto orig_part = participants;
       result.set_security_group_info(std::move(security_group));
+      const auto& sec_group = result.get_security_group_info();
+      participants = "";
+      for (const auto part : sec_group.participants) {
+         participants += part.to_string() + ",";
+      }
+      if (sec_group.version != orig_ver || orig_part != participants) {
+         ilog("REM    pending SECURITY GROUP ver: ${v}, participants: ${p}",("v",orig_ver)("p",orig_part));
+      }
+      ilog("REM    SECURITY GROUP ver: ${v}, participants: ${p}",("v",sec_group.version)("p",participants));
 
       return result;
    }

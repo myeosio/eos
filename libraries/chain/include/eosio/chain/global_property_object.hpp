@@ -162,6 +162,7 @@ namespace eosio { namespace chain {
                                  snapshot_global_property_object::extension_t&& extension) {
       std::visit(
           [&gpo](auto& ext) {
+             ilog("REM set_gpo_extension proposed_security_group_block_num: ${bn}, size: ${s} before",("bn",gpo.proposed_security_group_block_num)("s",gpo.proposed_security_group_participants.size()));
              gpo.proposed_security_group_block_num    = ext.proposed_security_group_block_num;
              gpo.proposed_security_group_participants = {ext.proposed_security_group_participants.begin(),
                                                          ext.proposed_security_group_participants.end(),

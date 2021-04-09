@@ -21,6 +21,7 @@ namespace eosio {
       bool update_cache(const uint32_t version, const participant_list_t& participant_list);
       /** @brief Determine if a participant is in the security group */
       bool is_in_security_group(chain::account_name participant) const {
+         ilog("REM is_in_security_group ${e}, ${in}",("e",cache_.empty())("in",cache_.find(participant) != cache_.end()));
          return cache_.empty() || (cache_.find(participant) != cache_.end());
       }
    private:

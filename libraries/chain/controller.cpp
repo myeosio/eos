@@ -73,7 +73,10 @@ struct pending_state {
                   const vector<digest_type>& new_protocol_feature_activations )
    :_db_session( move(s) )
    ,_block_stage( building_block( prev, when, num_prev_blocks_to_confirm, new_protocol_feature_activations ) )
-   {}
+   {
+      const auto& pbhs = get_pending_block_header_state();
+      ilog("REM pending_state just created pending_block_header_state: ${p}",("p",(uint64_t)&pbhs));
+   }
 
    combined_session                   _db_session;
    block_stage_type                   _block_stage;
@@ -1321,6 +1324,7 @@ struct controller_impl {
          pending.reset();
       });
 
+      ilog("REM pending_state creating (pending_block_header_state)");
       if (!self.skip_db_sessions(s)) {
          EOS_ASSERT( db.revision() == head->block_num, database_exception, "db revision is not on par with head block",
                      ("db.revision()", db.revision())("controller_head_block", head->block_num)("fork_db_head_block", fork_db.head()->block_num) );
@@ -1447,8 +1451,10 @@ struct controller_impl {
                   gpo.proposed_security_group_participants.end(),
                   bb._pending_block_header_state.security_group.participants.key_comp(),
                   bb._pending_block_header_state.security_group.participants.get_allocator()};
+               ilog("REM promoting proposed security group: ${num}",("num",(uint64_t)&bb._pending_block_header_state));
 
                db.modify(gpo, [&](auto& gp) { 
+                  ilog("REM new security group head: ${head}, LIB: ${lib}",("head", head->block_num + 1)("lib", gpo.proposed_security_group_block_num));
                   gp.proposed_security_group_block_num = 0; 
                   gp.proposed_security_group_participants.clear(); 
                });
@@ -1489,6 +1495,7 @@ struct controller_impl {
 
    void finalize_block()
    {
+      ilog("REM finalize_block");
       EOS_ASSERT( pending, block_validate_exception, "it is not valid to finalize when there is no pending block");
       EOS_ASSERT( std::holds_alternative<building_block>(pending->_block_stage), block_validate_exception, "already called finalize_block");
 
@@ -1521,6 +1528,7 @@ struct controller_impl {
       );
       resource_limits.process_block_usage(pbhs.block_num);
 
+      ilog("REM finalize_block make_block_header");
       // Create (unsigned) block:
       auto block_ptr = std::make_shared<signed_block>( pbhs.make_block_header(
          calc_trx_merkle ? trx_merkle_fut.get() : std::get<checksum256_type>(bb._trx_mroot_or_receipt_digests),
@@ -1551,6 +1559,7 @@ struct controller_impl {
       );
       */
 
+      ilog("REM finalize_block moving block header state");
       pending->_block_stage = assembled_block{
                                  id,
                                  std::move( bb._pending_block_header_state ),
@@ -1661,7 +1670,8 @@ struct controller_impl {
 
    void apply_block( const block_state_ptr& bsp, controller::block_status s, const trx_meta_cache_lookup& trx_lookup )
    { try {
-      try {
+     ilog("REM apply_block");
+     try {
          const signed_block_ptr& b = bsp->block;
          const auto& new_protocol_feature_activations = bsp->get_new_protocol_feature_activations();
 
@@ -1748,6 +1758,7 @@ struct controller_impl {
                         ("producer_receipt", static_cast<const transaction_receipt_header&>(receipt))("validator_receipt", r) );
          }
 
+         ilog("REM apply_block finalize_block");
          finalize_block();
 
          auto& ab = std::get<assembled_block>(pending->_block_stage);
@@ -1763,6 +1774,7 @@ struct controller_impl {
          pending->_block_stage = completed_block{ bsp };
 
          commit_block(false);
+         ilog("REM apply_block done");
          return;
       } catch ( const std::bad_alloc& ) {
          throw;
@@ -1780,6 +1792,7 @@ struct controller_impl {
    } FC_CAPTURE_AND_RETHROW() } /// apply_block
 
    std::future<block_state_ptr> create_block_state_future( const block_id_type& id, const signed_block_ptr& b ) {
+      ilog("REM create_block_state_future");
       EOS_ASSERT( b, block_validate_exception, "null block" );
 
       // no reason for a block_state if fork_db already knows about block
@@ -1797,6 +1810,7 @@ struct controller_impl {
          EOS_ASSERT( b->transaction_mroot == trx_mroot, block_validate_exception,
                      "invalid block transaction merkle root ${b} != ${c}", ("b", b->transaction_mroot)("c", trx_mroot) );
 
+         ilog("REM create_block_state_future create block_state");
          auto bsp = std::make_shared<block_state>(
                         *prev,
                         move( b ),
@@ -1807,6 +1821,7 @@ struct controller_impl {
                         { control->check_protocol_features( timestamp, cur_features, new_features ); },
                         skip_validate_signee
          );
+         ilog("REM create_block_state_future create block_state done");
 
          EOS_ASSERT( id == bsp->id, block_validate_exception,
                      "provided id ${id} does not match block id ${bid}", ("id", id)("bid", bsp->id) );
@@ -2259,6 +2274,7 @@ struct controller_impl {
       const auto& gpo           = self.get_global_properties();
       auto        cur_block_num = head->block_num + 1;
 
+      ilog("REM propose_security_group check activated");
       if (!self.is_builtin_activated(builtin_protocol_feature_t::security_group)) {
          return -1;
       }
@@ -2267,12 +2283,15 @@ struct controller_impl {
                               ? self.active_security_group().participants
                               : flat_set<account_name>{gpo.proposed_security_group_participants.begin(),
                                                        gpo.proposed_security_group_participants.end()};
+      ilog("REM propose_security_group proposed_participants block num: ${bn}, size:${s}",("bn", gpo.proposed_security_group_block_num)("s",proposed_participants.size()));
 
       auto orig_participants_size = proposed_participants.size();
 
       modify_participants(proposed_participants);
+      ilog("REM propose_security_group proposed_participants changed block num: ${bn}, size:${s}",("bn", gpo.proposed_security_group_block_num)("s",proposed_participants.size()));
 
       if (orig_participants_size == proposed_participants.size()) {
+         ilog("REM propose_security_group no change");
          // no changes in the participants
          return -1;
       }
@@ -2283,8 +2302,10 @@ struct controller_impl {
                                                     proposed_participants.end(),
                                                     gp.proposed_security_group_participants.key_comp(),
                                                     gp.proposed_security_group_participants.get_allocator()};
+//         ilog("REM propose_security_group new changed block num: ${bn}, size:${s}",("bn", gp.proposed_security_group_block_num)("s",gp.proposed_security_group_participants.size()));
       });
 
+      ilog("REM propose_security_group DONE");
       return 0;
    }
 
@@ -2543,12 +2564,14 @@ void controller::start_block( block_timestamp_type when,
 }
 
 block_state_ptr controller::finalize_block( const signer_callback_type& signer_callback ) {
+   ilog("REM controller::finalize_block");
    validate_db_available_size();
 
    my->finalize_block();
 
    auto& ab = std::get<assembled_block>(my->pending->_block_stage);
 
+   ilog("REM controller::finalize_block create block_state");
    auto bsp = std::make_shared<block_state>(
                   std::move( ab._pending_block_header_state ),
                   std::move( ab._unsigned_block ),
@@ -2560,9 +2583,11 @@ block_state_ptr controller::finalize_block( const signer_callback_type& signer_c
                   {},
                   signer_callback
               );
+   ilog("REM controller::finalize_block create block_state done");
 
    my->pending->_block_stage = completed_block{ bsp };
 
+   ilog("REM controller::finalize_block DONE");
    return bsp;
 }
 

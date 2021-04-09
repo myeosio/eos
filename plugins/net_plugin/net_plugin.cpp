@@ -870,6 +870,9 @@ namespace eosio {
       inline auto participant_name() { return participant_name_; }
       /** @brief Set the participating status */
       inline void set_participating(bool status) { 
+         if (status != participating_) {
+            ilog("REM net_plugin ${part} changing from ${b} to ${a}",("part",(participant_name_ ? participant_name_->to_string() : "<not valid>"))("b", (bool)participating_)("a",status));
+         }
          if (my_impl->ssl_enabled)
             participating_.store(status, std::memory_order_relaxed); 
       }
@@ -938,6 +941,7 @@ namespace eosio {
             std::string organization{buf, (size_t)length};
             if (is_string_valid_name(organization)){
                participant_name_ = account_name{organization};
+               peer_dlog(this, "participant added: ${o}", ("o", organization));
                //participant name will be later used in start_session to determine if
                //participant is participating or not
             }
@@ -2402,6 +2406,7 @@ namespace eosio {
       for_each_block_connection( [this, &id, &bnum, &b, &buff_factory]( auto& cp ) {
          peer_dlog( cp, "socket_is_open ${s}, connecting ${c}, syncing ${ss}",
                     ("s", cp->socket_is_open())("c", cp->connecting.load())("ss", cp->syncing.load()) );
+         ilog("REM current: ${c}, participating: ${part}",("c",cp->current())("part",cp->is_participating()));
          if( !cp->current() || !cp->is_participating() ) {
             ilog("REM not sending");
             return true;

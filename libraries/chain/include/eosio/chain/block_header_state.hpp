@@ -64,6 +64,9 @@ namespace detail {
       flat_map<account_name,uint32_t>   producer_to_last_implied_irb;
       block_signing_authority           valid_block_signing_authority;
       vector<uint8_t>                   confirm_count;
+      virtual ~block_header_state_common() {
+         ilog("REM block_header_state_common::~block_header_state_common: ${p}",("p",(uint64_t)this));
+      }
    };
 
    struct schedule_info {
@@ -87,6 +90,9 @@ struct pending_block_header_state : public detail::block_header_state_common {
    uint32_t                             active_schedule_version = 0;
    uint16_t                             confirmed = 1;
    security_group_info_t                security_group;
+   virtual ~pending_block_header_state() {
+      ilog("REM pending_block_header_state::~pending_block_header_state: ${p}",("p",(uint64_t)this));
+   }
 
    signed_block_header make_block_header( const checksum256_type& transaction_mroot,
                                           const checksum256_type& action_mroot,
@@ -125,6 +131,9 @@ protected:
  */
 struct block_header_state : public detail::block_header_state_common {
 
+   virtual ~block_header_state() {
+      ilog("REM block_header_state::~block_header_state: ${p}",("p",(uint64_t)this));
+   }
    /// this version is coming from chain_snapshot_header.version
    static constexpr uint32_t minimum_snapshot_version_with_state_extension = 6; 
 

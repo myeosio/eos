@@ -9,10 +9,13 @@
 namespace eosio { namespace chain {
    combined_session::combined_session(chainbase::database& cb_database, eosio::session::undo_stack<rocks_db_type>* undo_stack)
        : kv_undo_stack{ undo_stack } {
+      ilog("REM combined_session: ${p}",("p",(uint64_t)this));
       cb_session = std::make_unique<chainbase::database::session>(cb_database.start_undo_session(true));
       try {
         try {
             if (kv_undo_stack) {
+
+              ilog("REM combined_session push: ${p}",("p",(uint64_t)this));
               kv_undo_stack->push();
             }
         }
@@ -23,11 +26,14 @@ namespace eosio { namespace chain {
 
    combined_session::combined_session(combined_session&& src) noexcept
        : cb_session(std::move(src.cb_session)), kv_undo_stack(src.kv_undo_stack) {
+      ilog("REM combined_session: ${p}",("p",(uint64_t)this));
       src.kv_undo_stack = nullptr;
    }
 
    void combined_session::push() {
+      ilog("REM combined_session::push: ${p}",("p",(uint64_t)this));
       if (cb_session) {
+         ilog("REM combined_session::push actual: ${p}",("p",(uint64_t)this));
          cb_session->push();
          cb_session = nullptr;
 
@@ -38,7 +44,9 @@ namespace eosio { namespace chain {
    }
 
    void combined_session::squash() {
+      ilog("REM combined_session::squash: ${p}",("p",(uint64_t)this));
       if (cb_session) {
+         ilog("REM combined_session::squash actual: ${p}",("p",(uint64_t)this));
          cb_session->squash();
          cb_session = nullptr;
 
@@ -56,7 +64,9 @@ namespace eosio { namespace chain {
    }
 
    void combined_session::undo() {
+      ilog("REM combined_session::undo: ${p}",("p",(uint64_t)this));
       if (cb_session) {
+         ilog("REM combined_session::undo actual: ${p}",("p",(uint64_t)this));
          cb_session->undo();
          cb_session = nullptr;
 

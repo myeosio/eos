@@ -39,6 +39,7 @@ namespace eosio { namespace chain {
                                                          uint16_t num_prev_blocks_to_confirm )const
    {
       pending_block_header_state result;
+      ilog("REM block_header_state::next: ${p}, pending_block_header_state: ${pp}",("p",(uint64_t)this)("pp", (uint64_t)&result));
 
       if( when != block_timestamp_type() ) {
         EOS_ASSERT( when > header.timestamp, block_validate_exception, "next block must be in the future" );
@@ -167,8 +168,10 @@ namespace eosio { namespace chain {
          result.producer_to_last_implied_irb[proauth.producer_name] = dpos_proposed_irreversible_blocknum;
       }
 
+      ilog("REM block_header_state::next get_security_group_info");
       result.security_group = get_security_group_info();
 
+      ilog("REM block_header_state::next done");
       return result;
    }
 
@@ -180,6 +183,7 @@ namespace eosio { namespace chain {
                                                       const protocol_feature_set& pfs
    )const
    {
+      ilog("REM pending_block_header_state::make_block_header: ${p}",("p",(uint64_t)this));
       signed_block_header h;
 
       h.timestamp         = timestamp;
@@ -220,6 +224,7 @@ namespace eosio { namespace chain {
          }
       }
 
+      ilog("REM pending_block_header_state::make_block_header done");
       return h;
    }
 
@@ -232,6 +237,7 @@ namespace eosio { namespace chain {
 
    )&&
    {
+      ilog("REM _finish_next: ${p}",("p",(uint64_t)this));
       EOS_ASSERT( h.timestamp == timestamp, block_validate_exception, "timestamp mismatch" );
       EOS_ASSERT( h.previous == previous, unlinkable_block_exception, "previous mismatch" );
       EOS_ASSERT( h.confirmed == confirmed, block_validate_exception, "confirmed mismatch" );
@@ -346,6 +352,7 @@ namespace eosio { namespace chain {
                                  bool skip_validate_signee
    )&&
    {
+      ilog("REM finish_next : ${num}",("num",(uint64_t)this));
       if( !additional_signatures.empty() ) {
          bool wtmsig_enabled = detail::is_builtin_activated(prev_activated_protocol_features, pfs, builtin_protocol_feature_t::wtmsig_block_signatures);
 
@@ -375,6 +382,7 @@ namespace eosio { namespace chain {
                                  const signer_callback_type& signer
    )&&
    {
+      ilog("REM finish_next: ${p}",("p",(uint64_t)this));
       auto pfa = prev_activated_protocol_features;
 
       auto result = std::move(*this)._finish_next( h, pfs, validator );
@@ -406,6 +414,7 @@ namespace eosio { namespace chain {
                                                   const vector<digest_type>& )>& validator,
                         bool skip_validate_signee )const
    {
+      ilog("REM block_header_state::next: ${p}",("p",(uint64_t)this));
       return next( h.timestamp, h.confirmed ).finish_next( h, std::move(_additional_signatures), pfs, validator, skip_validate_signee );
    }
 
@@ -474,6 +483,7 @@ namespace eosio { namespace chain {
 
    block_header_state::block_header_state( legacy::snapshot_block_header_state_v2&& snapshot )
    {
+      ilog("REM block_header_state::block_header_state: ${p}",("p",(uint64_t)this));
       block_num                             = snapshot.block_num;
       dpos_proposed_irreversible_blocknum   = snapshot.dpos_proposed_irreversible_blocknum;
       dpos_irreversible_blocknum            = snapshot.dpos_irreversible_blocknum;
@@ -489,6 +499,7 @@ namespace eosio { namespace chain {
       pending_schedule.schedule_hash        = std::move(snapshot.pending_schedule.schedule_hash);
       pending_schedule.schedule             = producer_authority_schedule( snapshot.pending_schedule.schedule );
       activated_protocol_features           = std::move(snapshot.activated_protocol_features);
+      ilog("REM block_header_state::block_header_state: ${p} - DONE",("p",(uint64_t)this));
    }
 
 

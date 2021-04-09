@@ -866,7 +866,12 @@ namespace eosio {
       /** @brief  Returns the optional name of the participant */
       auto participant_name() { return participant_name_; }
       /** @brief Set the participating status */
-      void set_participating(bool status) { participating_.store(status, std::memory_order_relaxed); }
+      void set_participating(bool status) {
+         if (status != participating_) {
+            ilog("REM net_plugin ${part} changing from ${b} to ${a}",("part",(participant_name_ ? participant_name_->to_string() : "<not valid>"))("b", (bool)participating_)("a",status));
+         }
+         participating_.store(status, std::memory_order_relaxed);
+      }
       /** returns true if connection is in the security group */
       bool is_participating() const { return participating_.load(std::memory_order_relaxed); }
 
@@ -917,6 +922,7 @@ namespace eosio {
                account_name participant{organization};
                
                std::lock_guard<std::shared_mutex> connection_guard(my_impl->connections_mtx);
+               participant_name_ = participant;
                if(my_impl->security_group.is_in_security_group(participant)) {
                   set_participating(true);
                   peer_dlog(this, "participant added: ${o}", ("o", organization));
@@ -2380,6 +2386,7 @@ namespace eosio {
       for_each_block_connection( [this, &id, &bnum, &b, &buff_factory]( auto& cp ) {
          peer_dlog( cp, "socket_is_open ${s}, connecting ${c}, syncing ${ss}",
                     ("s", cp->socket_is_open())("c", cp->connecting.load())("ss", cp->syncing.load()) );
+         ilog("REM current: ${c}, participating: ${part}",("c",cp->current())("part",cp->is_participating()));
          if( !cp->current() || !cp->is_participating() ) {
             ilog("REM not sending");
             return true;

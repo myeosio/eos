@@ -171,6 +171,7 @@ namespace eosio { namespace chain {
              gpo.transaction_hooks                    = {ext.transaction_hooks.begin(),
                                                          ext.transaction_hooks.end(),
                                                          gpo.transaction_hooks.get_allocator()};
+             ilog("REM set_gpo_extension proposed_security_group_block_num: ${bn}, size: ${s} after",("bn",gpo.proposed_security_group_block_num)("s",gpo.proposed_security_group_participants.size()));
           },
           extension);
    }

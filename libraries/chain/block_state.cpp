@@ -52,6 +52,7 @@ namespace eosio { namespace chain {
                                                        const protocol_feature_set& pfs,
                                                        Extras&& ... extras )
       {
+         ilog("REM inject_additional_signatures");
          auto pfa = cur.prev_activated_protocol_features;
          block_header_state result = std::move(cur).finish_next(b, pfs, std::forward<Extras>(extras)...);
 
@@ -84,7 +85,9 @@ namespace eosio { namespace chain {
                            )
    :block_header_state( prev.next( *b, extract_additional_signatures(b, pfs, prev.activated_protocol_features), pfs, validator, skip_validate_signee ) )
    ,block( std::move(b) )
-   {}
+   {
+      ilog("REM block_state");
+   }
 
    block_state::block_state( pending_block_header_state&& cur,
                              signed_block_ptr&& b,
@@ -99,6 +102,8 @@ namespace eosio { namespace chain {
    ,block( std::move(b) )
    ,_pub_keys_recovered( true ) // called by produce_block so signature recovery of trxs must have been done
    ,_cached_trxs( std::move(trx_metas) )
-   {}
+   {
+      ilog("REM block_state");
+   }
 
 } } /// eosio::chain

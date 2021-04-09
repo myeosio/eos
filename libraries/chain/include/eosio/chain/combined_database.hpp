@@ -66,7 +66,7 @@ namespace eosio { namespace chain {
 
       combined_session(combined_session&& src) noexcept;
 
-      ~combined_session() { undo(); }
+      ~combined_session() { ilog("REM ~combined_session: ${p}",("p",(uint64_t)this)); undo(); }
 
       combined_session& operator=(const combined_session& src) = delete;
 

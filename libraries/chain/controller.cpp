@@ -1340,8 +1340,14 @@ struct controller_impl {
       auto& bb = std::get<building_block>(pending->_block_stage);
       const auto& pbhs = bb._pending_block_header_state;
 
+      ilog("REM start_block read_mode: ${rm} (${spec}), block_status: ${bs} (${incomp}),",("rm", (uint64_t)read_mode)("spec", (uint64_t)db_read_mode::SPECULATIVE)("bs", (uint64_t)pending->_block_status)("incomp", (uint64_t)controller::block_status::incomplete));
       if ( read_mode == db_read_mode::SPECULATIVE || pending->_block_status != controller::block_status::incomplete )
       {
+         {
+            const auto& gpo = self.get_global_properties();
+            ilog("REM start_block proposed_schedule_block_num: ${bn}",("bn", gpo.proposed_schedule_block_num));
+
+         }
          const auto& pso = db.get<protocol_state_object>();
 
          auto num_preactivated_protocol_features = pso.preactivated_protocol_features.size();

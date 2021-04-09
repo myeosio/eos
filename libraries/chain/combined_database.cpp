@@ -6,6 +6,9 @@
 #include <eosio/chain/backing_store/db_context.hpp>
 #include <eosio/chain/backing_store/db_key_value_format.hpp>
 
+namespace {
+   chainbase::database* temp_db = nullptr;
+}
 namespace eosio { namespace chain {
    combined_session::combined_session(chainbase::database& cb_database, eosio::session::undo_stack<rocks_db_type>* undo_stack)
        : kv_undo_stack{ undo_stack } {
@@ -80,6 +83,8 @@ namespace eosio { namespace chain {
             }
             CATCH_AND_EXIT_DB_FAILURE()
          }
+         const auto& gpo = temp_db->get<global_property_object>();
+         ilog("REM post undo - proposed_schedule_block_num: ${bn}",("bn", gpo.proposed_schedule_block_num));
       }
    }
 
@@ -165,11 +170,12 @@ namespace eosio { namespace chain {
 
    combined_database::combined_database(chainbase::database& chain_db,
                                         uint32_t snapshot_batch_threashold)
-       : backing_store(backing_store_type::CHAINBASE), db(chain_db), kv_snapshot_batch_threashold(snapshot_batch_threashold * 1024 * 1024) {}
+       : backing_store(backing_store_type::CHAINBASE), db(chain_db), kv_snapshot_batch_threashold(snapshot_batch_threashold * 1024 * 1024) {temp_db=&db;}
 
    combined_database::combined_database(chainbase::database& chain_db,
                                         const controller::config& cfg)
        : backing_store(backing_store_type::ROCKSDB), db(chain_db), kv_database{ [&]() {
+            temp_db=&db;
             rocksdb::Options options;
 
             options.create_if_missing = true; // Creates a database if it is missing
